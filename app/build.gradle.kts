@@ -17,6 +17,18 @@ android {
         versionCode = providers.gradleProperty("versionCode").getOrElse("1").toInt()
         versionName = providers.gradleProperty("versionName").getOrElse("0.0.0-dev")
     }
+    // The release workflow provides the password, so every release has the same signature and
+    // installs over the previous one. Without it, builds use the local debug key.
+    val keystorePassword = providers.environmentVariable("WALKY_KEYSTORE_PASSWORD").orNull
+    if (keystorePassword != null) {
+        val walky = signingConfigs.create("walky") {
+            storeFile = rootProject.file("release.keystore")
+            storePassword = keystorePassword
+            keyAlias = "walky"
+            keyPassword = keystorePassword
+        }
+        buildTypes.getByName("debug").signingConfig = walky
+    }
     compileOptions {
         sourceCompatibility = JavaVersion.VERSION_17
         targetCompatibility = JavaVersion.VERSION_17

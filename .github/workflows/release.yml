@@ -13,10 +13,20 @@ jobs:
     steps:
       - uses: actions/checkout@v5
 
+      - name: Restore signing key
+        env:
+          WALKY_KEYSTORE: ${{ secrets.WALKY_KEYSTORE }}
+        run: |
+          test -n "${WALKY_KEYSTORE}"
+          printf '%s' "${WALKY_KEYSTORE}" | base64 -d > release.keystore
+
       # Root inside the container: the runner's checkout is not owned by uid 1000.
       - name: Test and build
+        env:
+          WALKY_KEYSTORE_PASSWORD: ${{ secrets.WALKY_KEYSTORE_PASSWORD }}
         run: |
-          docker compose run --rm --user 0:0 build ./gradlew testDebugUnitTest assembleDebug \
+          test -n "${WALKY_KEYSTORE_PASSWORD}"
+          docker compose run --rm --user 0:0 -e WALKY_KEYSTORE_PASSWORD build ./gradlew testDebugUnitTest assembleDebug \
             -PversionName="${GITHUB_REF_NAME#v}" -PversionCode="${GITHUB_RUN_NUMBER}"
 
       - name: Publish release

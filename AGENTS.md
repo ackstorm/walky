@@ -22,5 +22,6 @@ The APK lands in `./app/build/outputs/apk/debug/app-debug.apk`.
 ## Release
 
 Pushing a `v*` tag runs `./.github/workflows/release.yml`: tests, debug APK, GitHub release
-with the APK attached. The APK is signed with a debug key generated on each run, so installing
-a newer release over an older one fails until the app is uninstalled.
+with the APK attached. The APK is signed with the permanent key held only in the repository
+secrets `WALKY_KEYSTORE` (base64 PKCS12, alias `walky`) and `WALKY_KEYSTORE_PASSWORD`, so
+releases install over each other. Losing those secrets means every user uninstalls once.

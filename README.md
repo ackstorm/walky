@@ -7,8 +7,8 @@ account, and the audio is the only content it sends.
 ## Install
 
 Download the APK from the latest [release](https://github.com/ackstorm/walky/releases) and
-open it on the phone (Android 12 or later). Each release is signed with a different debug
-key: uninstall the previous version before installing a newer one.
+open it on the phone (Android 12 or later). From v0.1.2 on, every release is signed with the
+same key and installs over the previous one; coming from v0.1.1 or earlier, uninstall first.
 
 ## How it works
 

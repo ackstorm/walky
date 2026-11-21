@@ -12,6 +12,7 @@ import androidx.compose.animation.animateColorAsState
 import androidx.compose.animation.core.Animatable
 import androidx.compose.animation.core.LinearEasing
 import androidx.compose.animation.core.RepeatMode
+import androidx.compose.animation.core.animateDpAsState
 import androidx.compose.animation.core.animateFloat
 import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.animation.core.infiniteRepeatable
@@ -51,12 +52,17 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.draw.drawBehind
+import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.geometry.CornerRadius
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.geometry.Size
+import androidx.compose.ui.graphics.Brush
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.StrokeCap
 import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.graphics.graphicsLayer
+import androidx.compose.ui.graphics.lerp
 import androidx.compose.ui.hapticfeedback.HapticFeedbackType
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.platform.LocalContext
@@ -72,6 +78,7 @@ import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.LifecycleResumeEffect
+import kotlin.math.log10
 import kotlinx.coroutines.delay
 
 private const val WAVE_BARS = 48
@@ -103,7 +110,7 @@ fun RecordScreen(state: UiState, controller: Controller, onOpenSettings: () -> U
         levels.clear()
         if (recording == null) return@LaunchedEffect
         while (true) {
-            levels.add(controller.amplitude())
+            levels.add(displayLevel(controller.amplitude()))
             if (levels.size > WAVE_BARS) levels.removeAt(0)
             delay(WAVE_SAMPLE_MS)
         }
@@ -158,8 +165,9 @@ fun RecordScreen(state: UiState, controller: Controller, onOpenSettings: () -> U
             val bar = slot * 0.5f
             levels.forEachIndexed { i, level ->
                 val h = (size.height * 0.8f * level).coerceAtLeast(bar)
+                val age = (WAVE_BARS - levels.size + i) / WAVE_BARS.toFloat()
                 drawRoundRect(
-                    color = waveColor,
+                    color = waveColor.copy(alpha = 0.25f + 0.75f * age),
                     topLeft = Offset((WAVE_BARS - levels.size + i) * slot, (size.height - h) / 2),
                     size = Size(bar, h),
                     cornerRadius = CornerRadius(bar / 2),
@@ -172,19 +180,24 @@ fun RecordScreen(state: UiState, controller: Controller, onOpenSettings: () -> U
             val breath by pulse.animateFloat(1f, 1.04f, infiniteRepeatable(tween(1700), RepeatMode.Reverse))
             val turn by pulse.animateFloat(0f, 360f, infiniteRepeatable(tween(900, easing = LinearEasing)))
 
-            // Halo that follows the voice.
-            val halo by animateFloatAsState(if (recording != null) 1f + (levels.lastOrNull() ?: 0f) * 0.55f else 1f)
-            val haloAlpha by animateFloatAsState(if (recording != null) 0.5f else 0f)
-            Box(
-                Modifier
-                    .size(112.dp)
-                    .graphicsLayer {
-                        scaleX = halo
-                        scaleY = halo
-                        alpha = haloAlpha
-                    }
-                    .background(if (cancelArmed) colors.errorContainer else colors.primaryContainer, CircleShape),
-            )
+            // Two halos that open on press and swell with the voice.
+            val level = if (recording != null) levels.lastOrNull() ?: 0f else 0f
+            val listening by animateFloatAsState(if (recording != null) 1f else 0f)
+            val swell by animateFloatAsState(level, tween(120))
+            val haloColor = if (cancelArmed) colors.errorContainer else colors.primaryContainer
+            for ((reach, strength) in listOf(0.34f to 0.25f, 0.16f to 0.55f)) {
+                Box(
+                    Modifier
+                        .size(112.dp)
+                        .graphicsLayer {
+                            val scale = 1f + listening * reach * (1f + 1.4f * swell)
+                            scaleX = scale
+                            scaleY = scale
+                            alpha = listening * strength
+                        }
+                        .background(haloColor, CircleShape),
+                )
+            }
 
             // Ring: spins while sending, bursts outward once delivered.
             val burst = remember { Animatable(1f) }
@@ -223,6 +236,7 @@ fun RecordScreen(state: UiState, controller: Controller, onOpenSettings: () -> U
                     else -> colors.surfaceVariant
                 },
             )
+            val lift by animateDpAsState(if (state is UiState.Idle) 10.dp else 0.dp)
             Box(
                 Modifier
                     .size(112.dp)
@@ -265,8 +279,18 @@ fun RecordScreen(state: UiState, controller: Controller, onOpenSettings: () -> U
                         scaleX = sphereScale
                         scaleY = sphereScale
                     }
+                    .shadow(lift, CircleShape, ambientColor = colors.primary, spotColor = colors.primary)
                     .clip(CircleShape)
-                    .background(sphereColor),
+                    .drawBehind {
+                        // Lit from the upper left, so the disc reads as a sphere.
+                        drawRect(
+                            Brush.radialGradient(
+                                listOf(lerp(sphereColor, Color.White, 0.4f), sphereColor),
+                                center = Offset(size.width * 0.34f, size.height * 0.28f),
+                                radius = size.width * 0.7f,
+                            ),
+                        )
+                    },
             )
 
             // Where the slide ends: shown while recording, lit once the cancellation is armed.
@@ -333,6 +357,10 @@ fun RecordScreen(state: UiState, controller: Controller, onOpenSettings: () -> U
         }
     }
 }
+
+/** Maps a linear microphone level onto 0..1 over a 45 dB range, the way loudness is heard. */
+private fun displayLevel(linear: Float): Float =
+    if (linear <= 0f) 0f else ((20f * log10(linear) + 45f) / 45f).coerceIn(0f, 1f)
 
 private fun Notice.text(): Int = when (this) {
     Notice.SENT -> R.string.sent
