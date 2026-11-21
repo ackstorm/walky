@@ -1,6 +1,6 @@
 # Walky
 
-An Android app for Pixel phones: hold a sphere to record your voice, lift your thumb to send
+An Android app: hold a sphere to record your voice, lift your thumb to send
 the audio to your own HTTPS endpoint. Slide down before lifting to discard the take. No
 account, and the audio is the only content it sends.
 
@@ -23,8 +23,9 @@ key: uninstall the previous version before installing a newer one.
 - **Header** (optional): one name and value, for example `X-API-Key`. The value is stored
   encrypted with an Android Keystore key.
 
-To open the app with two taps on the back of a supported Pixel, go to
-**Settings → System → Gestures → Quick Tap → Open app** and choose Walky.
+It works on any phone with Android 12 or later. On a Pixel with Quick Tap you can also open
+it with two taps on the back: go to **Settings → System → Gestures → Quick Tap**, turn it on,
+pick **Open app** and choose Walky.
 
 ## What your endpoint receives
 
