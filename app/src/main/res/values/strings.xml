@@ -1,0 +1,41 @@
+<resources>
+    <string name="app_name">Walky</string>
+
+    <string name="hold_to_talk">Mantén pulsado para hablar</string>
+    <string name="slide_to_cancel">Desliza hacia abajo para cancelar</string>
+    <string name="release_to_discard">Suelta para descartar</string>
+    <string name="release_to_send">Suelta para enviar</string>
+    <string name="sending">Enviando…</string>
+    <string name="sent">Enviado</string>
+    <string name="discarded">Descartado</string>
+    <string name="too_short">Grabación demasiado corta</string>
+    <string name="mic_failed">No se ha podido abrir el micrófono</string>
+    <string name="interrupted">Grabación interrumpida</string>
+    <string name="unconfigured">Configura la URL de destino</string>
+
+    <string name="http_error">El servidor ha devuelto HTTP %1$d</string>
+    <string name="redirected">El servidor ha redirigido (HTTP %1$d). Revisa la URL en Ajustes</string>
+    <string name="offline">Sin conexión</string>
+    <string name="unconfirmed">No se ha podido confirmar la entrega</string>
+    <string name="tls_failed">No se ha podido establecer una conexión segura</string>
+    <string name="pending">Hay un envío pendiente</string>
+    <string name="new_destination">Se enviará a %1$s</string>
+    <string name="retry">Reintentar</string>
+    <string name="discard">Descartar</string>
+
+    <string name="mic_denied">Activa el micrófono en Ajustes del sistema → Aplicaciones → Walky → Permisos</string>
+    <string name="open_system_settings">Abrir ajustes del sistema</string>
+
+    <string name="settings">Ajustes</string>
+    <string name="save">Guardar</string>
+    <string name="url">URL de destino</string>
+    <string name="header_name">Nombre de la cabecera (opcional)</string>
+    <string name="header_value">Valor de la cabecera</string>
+    <string name="quick_tap_help">Acceso rápido: Ajustes → Sistema → Gestos → Toque rápido → Abrir aplicación, y elige Walky</string>
+    <string name="err_url_invalid">La URL no es válida</string>
+    <string name="err_url_not_https">La URL debe empezar por https://</string>
+    <string name="err_header_incomplete">Rellena el nombre y el valor de la cabecera, o deja ambos vacíos</string>
+    <string name="err_header_name_invalid">El nombre de la cabecera no es válido</string>
+    <string name="err_header_name_reserved">Esa cabecera la gestiona la app</string>
+    <string name="err_header_value_invalid">El valor de la cabecera contiene caracteres no válidos</string>
+</resources>

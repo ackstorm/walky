@@ -1,0 +1,16 @@
+services:
+  build:
+    build: .
+    user: "1000:1000"
+    working_dir: /src
+    volumes:
+      - .:/src
+      - gradle-cache:/gradle
+    environment:
+      GRADLE_USER_HOME: /gradle
+      ANDROID_USER_HOME: /gradle/android
+      # Sized for a 3 GB machine.
+      GRADLE_OPTS: "-Dorg.gradle.daemon=false -Dorg.gradle.jvmargs=-Xmx1536m -Dkotlin.compiler.execution.strategy=in-process"
+
+volumes:
+  gradle-cache:
