@@ -17,9 +17,15 @@ const val REARM_BELOW_DP = 48f
 /** Shorter holds are accidental taps and are never sent. */
 const val MIN_TAKE_MS = 300L
 
+/** A take whose loudest moment stays below this (0..1) holds no voice and is never sent. */
+const val SILENCE_BELOW = 0.05f
+
+/** The thump of the finger landing on the screen is not counted as sound. */
+const val SETTLE_MS = 200L
+
 enum class Zone { SEND, CANCEL }
 
-enum class Notice { SENT, DISCARDED, TOO_SHORT, MIC_FAILED, INTERRUPTED }
+enum class Notice { SENT, DISCARDED, TOO_SHORT, SILENT, MIC_FAILED, INTERRUPTED }
 
 sealed interface UiState {
     data object Unconfigured : UiState
@@ -40,7 +46,7 @@ interface Recorder {
     /** Releases the microphone. True if the file was finalized. */
     fun stop(): Boolean
 
-    /** 0..1, 0 when idle. */
+    /** Loudest level since the previous call, 0..1. 0 when idle. */
     fun amplitude(): Float
 }
 
@@ -57,6 +63,7 @@ class Controller(
     private val _state = MutableStateFlow<UiState>(UiState.Idle())
     val state: StateFlow<UiState> = _state
     private var startedAt = 0L
+    private var peak = 0f
 
     init {
         recorder.onError = ::interrupt
@@ -74,6 +81,7 @@ class Controller(
             return
         }
         startedAt = now()
+        peak = 0f
         _state.value = UiState.Recording()
     }
 
@@ -88,6 +96,7 @@ class Controller(
 
     fun release() {
         val recording = _state.value as? UiState.Recording ?: return
+        amplitude()
         val finalized = recorder.stop()
         if (recording.zone == Zone.CANCEL) {
             takes.discardRecording()
@@ -99,6 +108,11 @@ class Controller(
         if (!valid || settings == null) {
             takes.discardRecording()
             _state.value = UiState.Idle(Notice.TOO_SHORT)
+            return
+        }
+        if (peak < SILENCE_BELOW) {
+            takes.discardRecording()
+            _state.value = UiState.Idle(Notice.SILENT)
             return
         }
         takes.keep(settings.url)
@@ -131,7 +145,12 @@ class Controller(
         }
     }
 
-    fun amplitude(): Float = recorder.amplitude()
+    /** Call it while recording to draw the level; every reading also feeds the silence check. */
+    fun amplitude(): Float {
+        val level = recorder.amplitude()
+        if (_state.value is UiState.Recording && now() - startedAt >= SETTLE_MS) peak = maxOf(peak, level)
+        return level
+    }
 
     private fun send() {
         val take = takes.pending() ?: return
@@ -154,6 +173,6 @@ class Controller(
     private fun failed(result: UploadResult?, take: PendingTake): UiState.Failed {
         val current = loadSettings()?.url
         val changed = current != null && current != take.url
-        return UiState.Failed(result, if (changed) destinationLabel(current!!) else null)
+        return UiState.Failed(result, if (changed) destinationLabel(current) else null)
     }
 }

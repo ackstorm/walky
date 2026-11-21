@@ -1,6 +1,7 @@
 package com.ackstorm.walky
 
 import java.io.File
+import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.test.StandardTestDispatcher
 import kotlinx.coroutines.test.TestScope
 import kotlinx.coroutines.test.advanceUntilIdle
@@ -14,6 +15,7 @@ import org.junit.Rule
 import org.junit.Test
 import org.junit.rules.TemporaryFolder
 
+@OptIn(ExperimentalCoroutinesApi::class)
 class ControllerTest {
     private class FakeRecorder : Recorder {
         override var onError: () -> Unit = {}
@@ -21,6 +23,7 @@ class ControllerTest {
         var finalizes = true
         var starts = 0
         var stops = 0
+        var level = 0.5f
 
         override fun start(file: File) {
             if (failStart) error("microphone busy")
@@ -33,7 +36,7 @@ class ControllerTest {
             return finalizes
         }
 
-        override fun amplitude() = 0f
+        override fun amplitude() = level
     }
 
     private class FakeUploader : Uploader {
@@ -167,6 +170,41 @@ class ControllerTest {
         advanceUntilIdle()
         assertEquals(UiState.Idle(Notice.TOO_SHORT), c.state.value)
         assertEquals(0, uploader.posts.size)
+    }
+
+    @Test fun silentTakeIsDiscardedWithZeroPosts() = runTest {
+        recorder.level = SILENCE_BELOW - 0.01f
+        val c = controller()
+        c.hold(2000)
+        c.release()
+        advanceUntilIdle()
+        assertEquals(UiState.Idle(Notice.SILENT), c.state.value)
+        assertEquals(0, uploader.posts.size)
+        assertFalse(takes.recording.exists())
+    }
+
+    @Test fun fingerThumpAtTheStartIsNotVoice() = runTest {
+        val c = controller()
+        c.press()
+        clock += SETTLE_MS - 1
+        c.amplitude()
+        recorder.level = 0f
+        clock += 1000
+        c.release()
+        advanceUntilIdle()
+        assertEquals(UiState.Idle(Notice.SILENT), c.state.value)
+        assertEquals(0, uploader.posts.size)
+    }
+
+    @Test fun voiceHeardOnlyWhileSamplingStillSends() = runTest {
+        val c = controller()
+        c.hold(1000)
+        c.amplitude()
+        recorder.level = 0f
+        clock += 1000
+        c.release()
+        advanceUntilIdle()
+        assertEquals(1, uploader.posts.size)
     }
 
     @Test fun micFailure() = runTest {

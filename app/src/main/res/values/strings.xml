@@ -9,6 +9,7 @@
     <string name="sent">Enviado</string>
     <string name="discarded">Descartado</string>
     <string name="too_short">Grabación demasiado corta</string>
+    <string name="nothing_heard">No se ha oído nada</string>
     <string name="mic_failed">No se ha podido abrir el micrófono</string>
     <string name="interrupted">Grabación interrumpida</string>
     <string name="unconfigured">Configura la URL de destino</string>
