@@ -28,6 +28,9 @@
     <string name="open_system_settings">Open system settings</string>
 
     <string name="settings">Settings</string>
+    <string name="scan_pairing_qr">Scan pairing QR</string>
+    <string name="scanner_unavailable">The QR scanner is not ready yet. Try again in a minute</string>
+    <string name="err_pairing_invalid">That QR is not a Walky pairing code</string>
     <string name="save">Save</string>
     <string name="url">Destination URL</string>
     <string name="header_name">Header name (optional)</string>

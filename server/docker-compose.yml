@@ -1,0 +1,19 @@
+name: walky-relay
+
+services:
+  relay:
+    build: .
+    restart: unless-stopped
+    # OpenCode listens on 127.0.0.1 only.
+    network_mode: host
+    # WALKY_DIRECTORY and STT_KEY.
+    env_file: .env
+    environment:
+      OPENCODE_PASSWORD:
+      VSCODE_PROXY_URI:
+      TOKEN_FILE: /data/token.sha256
+    volumes:
+      - relay-data:/data
+
+volumes:
+  relay-data:

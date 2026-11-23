@@ -22,6 +22,9 @@ same key and installs over the previous one; coming from v0.1.1 or earlier, unin
 - **Destination URL**: must be `https`.
 - **Header** (optional): one name and value, for example `X-API-Key`. The value is stored
   encrypted with an Android Keystore key.
+- **Scan pairing QR**: fills in and saves both from a `walky://pair?url=…&name=…&value=…`
+  code, such as the one the [relay](./server/README.md) shows. The scanner comes from Google
+  Play services, so Walky needs no camera permission.
 
 It works on any phone with Android 12 or later. On a Pixel with Quick Tap you can also open
 it with two taps on the back: go to **Settings → System → Gestures → Quick Tap**, turn it on,

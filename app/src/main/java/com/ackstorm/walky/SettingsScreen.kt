@@ -16,6 +16,7 @@ import androidx.compose.foundation.text.input.TextFieldState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.Button
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.OutlinedSecureTextField
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Text
@@ -25,9 +26,13 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
+import com.google.mlkit.vision.barcode.common.Barcode
+import com.google.mlkit.vision.codescanner.GmsBarcodeScannerOptions
+import com.google.mlkit.vision.codescanner.GmsBarcodeScanning
 
 @Composable
 fun SettingsScreen(initial: Settings?, onSave: (Settings) -> Unit) {
@@ -36,6 +41,8 @@ fun SettingsScreen(initial: Settings?, onSave: (Settings) -> Unit) {
     var headerName by remember { mutableStateOf(initial?.headerName ?: "") }
     val headerValue = remember { TextFieldState(initial?.headerValue ?: "") }
     var error by remember { mutableStateOf<SettingsError?>(null) }
+    var scannerFailed by remember { mutableStateOf(false) }
+    val context = LocalContext.current
 
     Column(
         Modifier
@@ -46,6 +53,25 @@ fun SettingsScreen(initial: Settings?, onSave: (Settings) -> Unit) {
         verticalArrangement = Arrangement.spacedBy(16.dp),
     ) {
         Text(stringResource(R.string.settings), style = MaterialTheme.typography.headlineMedium)
+        // Google Play services runs the camera, so Walky needs no camera permission.
+        OutlinedButton(
+            onClick = {
+                val options = GmsBarcodeScannerOptions.Builder().setBarcodeFormats(Barcode.FORMAT_QR_CODE).build()
+                GmsBarcodeScanning.getClient(context, options).startScan()
+                    .addOnSuccessListener { code ->
+                        scannerFailed = false
+                        when (val result = parsePairing(code.rawValue.orEmpty())) {
+                            is SettingsResult.Ok -> onSave(result.settings)
+                            is SettingsResult.Bad -> error = result.error
+                        }
+                    }
+                    .addOnFailureListener { scannerFailed = true }
+            },
+            modifier = Modifier.fillMaxWidth(),
+        ) {
+            Text(stringResource(R.string.scan_pairing_qr))
+        }
+        if (scannerFailed) Text(stringResource(R.string.scanner_unavailable), color = MaterialTheme.colorScheme.error)
         OutlinedTextField(
             value = url,
             onValueChange = { url = it },
@@ -96,4 +122,5 @@ private fun SettingsError.message(): Int = when (this) {
     SettingsError.HEADER_NAME_INVALID -> R.string.err_header_name_invalid
     SettingsError.HEADER_NAME_RESERVED -> R.string.err_header_name_reserved
     SettingsError.HEADER_VALUE_INVALID -> R.string.err_header_value_invalid
+    SettingsError.PAIRING_INVALID -> R.string.err_pairing_invalid
 }

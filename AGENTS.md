@@ -16,8 +16,15 @@ The APK lands in `./app/build/outputs/apk/debug/app-debug.apk`.
 
 - `docker-compose.yml` caps the Gradle heap for a 3 GB machine. Exit 137 means the build was
   killed for memory: run it on a bigger machine instead of raising the cap.
+- Build steps one at a time: running tests, assemble and lint in one Gradle call has
+  crashed the Docker daemon on this pod while other containers were running.
 - No emulator here. Behaviour lives in `Controller` and is proven by JVM tests with fakes;
   anything that needs Android is checked by hand on a Pixel.
+
+## Relay
+
+`./server/` holds the relay that turns takes into OpenCode prompts; read `./server/README.md`
+before changing it. Its tests run in the image build: `docker build --target test server`.
 
 ## Release
 

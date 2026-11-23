@@ -40,6 +40,23 @@ class SettingsTest {
     @Test fun rejectsControlCharInValue() =
         assertEquals(SettingsError.HEADER_VALUE_INVALID, bad("https://e.com", "X-K", "a\r\nb"))
 
+    // As the relay's pair page encodes it.
+    @Test fun pairingCodeFillsEverything() = assertEquals(
+        SettingsResult.Ok(Settings("https://8788--main--ws--me.coder.example/audio", "X-Token", "Ab-_9")),
+        parsePairing("walky://pair?url=https%3A%2F%2F8788--main--ws--me.coder.example%2Faudio&name=X-Token&value=Ab-_9"),
+    )
+
+    @Test fun pairingCodeIsValidatedLikeTyping() = assertEquals(
+        SettingsResult.Bad(SettingsError.URL_NOT_HTTPS),
+        parsePairing("walky://pair?url=http%3A%2F%2Fe.com&name=X-Token&value=v"),
+    )
+
+    @Test fun otherQrCodesAreRejected() {
+        for (code in listOf("https://example.com", "walky://other?url=https%3A%2F%2Fe.com", "not a code", "")) {
+            assertEquals(code, SettingsResult.Bad(SettingsError.PAIRING_INVALID), parsePairing(code))
+        }
+    }
+
     @Test fun labelHidesPathAndQuery() =
         assertEquals("h.example", destinationLabel("https://h.example:8443/x?token=abc"))
 }

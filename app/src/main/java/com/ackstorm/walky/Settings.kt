@@ -2,6 +2,7 @@ package com.ackstorm.walky
 
 import java.net.URI
 import java.net.URISyntaxException
+import java.net.URLDecoder
 
 data class Settings(val url: String, val headerName: String = "", val headerValue: String = "")
 
@@ -12,6 +13,7 @@ enum class SettingsError {
     HEADER_NAME_INVALID,
     HEADER_NAME_RESERVED,
     HEADER_VALUE_INVALID,
+    PAIRING_INVALID,
 }
 
 sealed interface SettingsResult {
@@ -47,6 +49,21 @@ fun parseSettings(url: String, headerName: String, headerValue: String): Setting
         }
     }
     return SettingsResult.Ok(Settings(cleanUrl, name, value))
+}
+
+/** Reads the `walky://pair?url=…&name=…&value=…` code shown by the relay's pair page. */
+fun parsePairing(code: String): SettingsResult {
+    val uri = try {
+        URI(code.trim())
+    } catch (e: URISyntaxException) {
+        return SettingsResult.Bad(SettingsError.PAIRING_INVALID)
+    }
+    if (uri.scheme != "walky" || uri.host != "pair") return SettingsResult.Bad(SettingsError.PAIRING_INVALID)
+    val query = uri.rawQuery.orEmpty().split("&").associate {
+        val (key, value) = (it.split("=", limit = 2) + "").take(2).map { part -> URLDecoder.decode(part, "UTF-8") }
+        key to value
+    }
+    return parseSettings(query["url"].orEmpty(), query["name"].orEmpty(), query["value"].orEmpty())
 }
 
 /** Host only: the path and query of a destination can carry a token. */
